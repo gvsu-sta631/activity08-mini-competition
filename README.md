@@ -3,7 +3,7 @@ Activity 08 - Classification Mini-Competition
 
 This activity is intended to be completed in one week - two class
 meetings and outside of class work. Think of this as a “culminating
-activity” for Module 3 (Classification).
+activity” for generalized linear models.
 
 In this repository/directory, you should see the following items:
 
@@ -113,3 +113,8 @@ Read these directions first, then work through them.
     clarification to their post and give them a “+ 1” 👍. Remember that
     this space is for conversations as well as posting questions. Read
     through your peers’ muddy posts and do your best to provide help.
+
+## Attribution
+
+This activity is based on [This is
+Statistics](https://thisisstatistics.org/)’s Fall Data Challenge.
