@@ -37,9 +37,9 @@ slides to the appropriate Google folder linked below before the start of
 our class meeting:
 
 - [Section 01 (4 - 5:15
-  pm)](https://drive.google.com/drive/folders/1jraxLZkPZwV1CndX1UI3iQG95KrcTJoS?usp=sharing)
+  pm)](https://drive.google.com/drive/folders/1jraxLZkPZwV1CndX1UI3iQG95KrcTJoS?usp=drive_link)
 - [Section 02 (2:30 - 3:45
-  pm)](https://drive.google.com/drive/folders/1GZp6xS7JY8TXNv9WCv-zGEF7r-vKUscM?usp=sharing)
+  pm)](https://drive.google.com/drive/folders/1GZp6xS7JY8TXNv9WCv-zGEF7r-vKUscM?usp=drive_link)
 
 Presentation order will be randomly determined at the start of class and
 edits to your slides will not be allowed.
