@@ -41,7 +41,7 @@ glimpse(data_combined)
 summary(data_combined)
 ```
 
-# Exploratory Data Analysis (EDA)
+# Exploratory Data Analysis (EDA) 
 # Plotting distributions of numerical variables
 ```{r}
 numerical_vars <- select_if(data_combined, is.numeric)
@@ -96,11 +96,13 @@ glm_model <- logistic_reg() %>%
 
 # Defining the recipe (target variable - SCCHOICE - Choice in school attendance)
 ```{r}
+
 #SCCHOICE - Choice in school attendance
 recipe <- recipe(SCCHOICE ~ ., data = train_data) %>%
-  step_normalize(all_predictors(), -all_outcomes()) %>%
+  # Convert all nominal predictors to dummy variables
   step_dummy(all_nominal(), -all_outcomes()) %>%
-  step_mutate(SCCHOICE = as.factor(SCCHOICE)) # Convert the target to a factor
+  # Now, normalize all numeric predictors
+  step_normalize(all_predictors(), -all_outcomes())
 ```
 
 # Fitting the model
