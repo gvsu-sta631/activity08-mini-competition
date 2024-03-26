@@ -1,4 +1,5 @@
 ---
+name: "Banabas Kariuki"
 title: "Linear Regression Mini-competition"
 output: github_document
 ---
@@ -6,3 +7,136 @@ output: github_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+# Load necessary libraries
+```{r}
+library(tidymodels)
+library(readxl)
+library(dplyr)
+library(ggplot2)
+```
+
+# Load data from the uploaded file
+```{r}
+data_2016 <- read_excel("~/Preparations/STA 631/activity08-mini-competition/activity08-mini-competition/competition-files/data/pfi-data.xlsx", sheet = "curated 2016")
+data_2019 <- read_excel("~/Preparations/STA 631/activity08-mini-competition/activity08-mini-competition/competition-files/data/pfi-data.xlsx", sheet = "curated 2019")
+```
+
+# Coerce ALLGRADEX to be the same type before combining datasets
+```{r}
+data_2016 <- data_2016 %>% mutate(ALLGRADEX = as.numeric(as.character(ALLGRADEX)))
+data_2019 <- data_2019 %>% mutate(ALLGRADEX = as.numeric(as.character(ALLGRADEX)))
+```
+
+
+# Combine datasets
+```{r}
+data_combined <- bind_rows(data_2016, data_2019)
+
+```
+
+# Initial data exploration
+```{r}
+glimpse(data_combined)
+summary(data_combined)
+```
+
+# Exploratory Data Analysis (EDA)
+# Plotting distributions of numerical variables
+```{r}
+numerical_vars <- select_if(data_combined, is.numeric)
+for (var in names(numerical_vars)) {
+  print(ggplot(data_combined, aes_string(x = var)) + 
+          geom_histogram(bins = 30, fill = "skyblue") + 
+          labs(title = paste("Distribution of", var)))
+}
+```
+
+# Exploratory analysis of categorical variables
+```{r}
+categorical_vars <- select_if(data_combined, is.factor)
+for (var in names(categorical_vars)) {
+  print(ggplot(data_combined, aes_string(x = var, fill = var)) + 
+          geom_bar() + 
+          theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+          labs(title = paste("Distribution of", var)))
+}
+```
+
+# Correlation analysis for numerical variables
+```{r}
+# Before performing correlation analysis, ensure there are no columns with only NA values
+# and that there is at least one pair of complete observations
+
+# Select numeric variables and remove any columns that are completely NA
+clean_numeric_data <- select_if(data_combined, is.numeric) %>%
+  select_if(~!all(is.na(.)))
+
+# Perform correlation analysis on cleaned numeric data
+correlation_analysis <- cor(clean_numeric_data, use = "pairwise.complete.obs")
+
+# Print the correlation matrix
+print(correlation_analysis)
+```
+
+# Splitting the dataset into training and testing sets
+```{r}
+set.seed(123) # For reproducibility
+data_split <- initial_split(data_combined, prop = 0.8)
+train_data <- training(data_split)
+test_data <- testing(data_split)
+```
+
+# Defining the model using GLM
+```{r}
+glm_model <- logistic_reg() %>% 
+  set_engine("glm") %>% 
+  set_mode("classification")
+```
+
+# Defining the recipe (target variable - SCCHOICE - Choice in school attendance)
+```{r}
+#SCCHOICE - Choice in school attendance
+recipe <- recipe(SCCHOICE ~ ., data = train_data) %>%
+  step_normalize(all_predictors(), -all_outcomes()) %>%
+  step_dummy(all_nominal(), -all_outcomes()) %>%
+  step_mutate(SCCHOICE = as.factor(SCCHOICE)) # Convert the target to a factor
+```
+
+# Fitting the model
+```{r}
+glm_fit <- workflow() %>%
+  add_model(glm_model) %>%
+  add_recipe(recipe) %>%
+  fit(data = train_data)
+```
+
+# Evaluating model performance
+```{r}
+glm_preds <- predict(glm_fit, new_data = test_data, type = "prob")
+glm_results <- bind_cols(test_data, glm_preds)
+
+```
+
+# Model assessment
+```{r}
+glm_performance <- glm_results %>%
+  roc_auc(truth = your_target_variable, .pred_class)
+
+print(glm_performance)
+
+```
+
+# Further analysis and model refinement as needed
+
+
+
+
+
+
+
+
+
+
+
+
