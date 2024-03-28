@@ -33,74 +33,89 @@ data_combined <- bind_rows(data_2016, data_2019)
 ```
 
 ```{r}
-# Initial data exploration
-glimpse(data_combined)
-summary(data_combined)
-```
-
-
-```{r}
 # Preprocess SCCHOICE variable
 data_combined <- data_combined %>%
   filter(SCCHOICE != -1) %>%
   mutate(SCCHOICE = factor(SCCHOICE, levels = c(1, 2), labels = c("Yes", "No")))
 ```
 
+
 ```{r}
-# Exploratory Data Analysis (EDA) - Focus on categorical variables
-categorical_vars <- select(data_combined, SPUBCHOIX, SCONSIDR, SEGRADES, FSSPORTX, FSMTNG, FSPTMTNG, FSATCNFN, FHHOME, FHCAMT, FHPLACE)
-for (var in names(categorical_vars)) {
-  print(ggplot(data_combined, aes(x = .data[[var]], fill = .data[[var]])) + 
-          geom_bar() + 
-          theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-          labs(title = paste("Distribution of", var)))
+# Detailed EDA for each variable group
+# Example for school choice variables
+school_choice_vars <- c("SPUBCHOIX", "SCONSIDR", "SEGRADES")
+family_engagement_vars <- c("FSSPORTX", "FSMTNG", "FSPTMTNG", "FSATCNFN")
+homework_vars <- c("FHHOME", "FHCAMT", "FHPLACE")
+```
+
+```{r}
+# Plotting function
+plot_categorical <- function(data, vars) {
+  for (var in vars) {
+    print(ggplot(data, aes_string(x = var, fill = var)) + 
+            geom_bar() + 
+            theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+            labs(title = paste("Distribution of", var)))
+  }
 }
+
+plot_categorical(data_combined, school_choice_vars)
+plot_categorical(data_combined, family_engagement_vars)
+plot_categorical(data_combined, homework_vars)
 ```
 
 ```{r}
-# Correlation analysis for numerical variables
-# Filter numeric variables and remove any columns that are completely NA
-clean_numeric_data <- select_if(data_combined, is.numeric) %>%
-  select_if(~!all(is.na(.)))
-```
-
-
-```{r}
-# Perform correlation analysis
-correlation_analysis <- cor(clean_numeric_data, use = "pairwise.complete.obs")
-
-# Print the correlation matrix
-print(correlation_analysis)
-```
-
-```{r}
-# Splitting the dataset into training and testing sets
+# Splitting the dataset
 set.seed(123)
 data_split <- initial_split(data_combined, prop = 0.8)
 train_data <- training(data_split)
 test_data <- testing(data_split)
 ```
-
 ```{r}
-# Defining the logistic regression model
-glm_model <- logistic_reg() %>% 
-  set_engine("glm") %>%
-  set_mode("classification")
-
-# Defining the recipe 
-recipe <- recipe(SCCHOICE ~ SPUBCHOIX + SCONSIDR + SEGRADES + FSSPORTX + FSMTNG + FSPTMTNG + FSATCNFN + FHHOME + FHCAMT + FHPLACE, data = train_data) %>%
-  step_dummy(all_nominal_predictors(), -all_outcomes())
-
+# Check levels of all factor variables
+sapply(select(train_data, where(is.factor)), function(x) nlevels(x))
 ```
 
 
 ```{r}
-# Fitting the model
+# Model setup
+glm_model <- logistic_reg() %>% 
+  set_engine("glm") %>%
+  set_mode("classification")
+```
+
+```{r}
+# Recipe with interaction terms
+recipe <- recipe(SCCHOICE ~ ., data = train_data) %>%
+  step_dummy(all_nominal_predictors(), -all_outcomes()) %>%
+  step_interact(terms = ~ SPUBCHOIX:FSSPORTX)
+```
+
+```{r}
 glm_fit <- workflow() %>%
   add_model(glm_model) %>%
   add_recipe(recipe) %>%
   fit(data = train_data)
 ```
+
+```{r}
+# Setting up resampling with v-fold cross-validation
+set.seed(123)
+cv_resamples <- vfold_cv(train_data, v = 5)
+
+# Proceed with fitting the model on corrected training data
+glm_fit_results <- fit_resamples(
+  workflow() %>%
+    add_model(glm_model) %>%
+    add_recipe(recipe),
+  resamples = cv_resamples
+)
+
+# Collect metrics
+metrics <- collect_metrics(glm_fit_results)
+print(metrics)
+```
+
 
 
 
