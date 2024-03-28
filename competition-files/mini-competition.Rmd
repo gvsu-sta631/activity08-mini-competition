@@ -17,23 +17,15 @@ library(ggplot2)
 ```
 
 ```{r}
-# Load data from the uploaded file
-data_2016 <- read_excel("~/Preparations/STA 631/activity08-mini-competition/activity08-mini-competition/competition-files/data/pfi-data.xlsx", sheet = "curated 2016")
-data_2019 <- read_excel("~/Preparations/STA 631/activity08-mini-competition/activity08-mini-competition/competition-files/data/pfi-data.xlsx", sheet = "curated 2019")
-```
+# Load and prepare data
+data_2016 <- read_excel("~/Preparations/STA 631/activity08-mini-competition/activity08-mini-competition/competition-files/data/pfi-data.xlsx", sheet = "curated 2016") %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(ALLGRADEX = as.factor(ALLGRADEX))
 
-```{r}
-# Ensure all character variables are treated as factors
-data_2016 <- data_2016 %>% mutate_if(is.character, as.factor)
-data_2019 <- data_2019 %>% mutate_if(is.character, as.factor)
+data_2019 <- read_excel("~/Preparations/STA 631/activity08-mini-competition/activity08-mini-competition/competition-files/data/pfi-data.xlsx", sheet = "curated 2019") %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(ALLGRADEX = as.factor(ALLGRADEX))
 ```
-
-```{r}
-# Convert ALLGRADEX to a factor in both datasets if it's meant to be treated as categorical
-data_2016 <- data_2016 %>% mutate(ALLGRADEX = as.factor(ALLGRADEX))
-data_2019 <- data_2019 %>% mutate(ALLGRADEX = as.factor(ALLGRADEX))
-```
-
 
 ```{r}
 # Combine datasets
@@ -46,33 +38,19 @@ glimpse(data_combined)
 summary(data_combined)
 ```
 
-```{r}
-# Filter out 'Valid Skip' responses if they are not relevant to the analysis
-data_combined <- data_combined %>%
-  filter(SCCHOICE != -1)
 
-# Convert SCCHOICE to a factor, ensuring it accurately represents a categorical variable
+```{r}
+# Preprocess SCCHOICE variable
 data_combined <- data_combined %>%
+  filter(SCCHOICE != -1) %>%
   mutate(SCCHOICE = factor(SCCHOICE, levels = c(1, 2), labels = c("Yes", "No")))
 ```
 
-
 ```{r}
-# Exploratory Data Analysis (EDA) 
-# Plotting distributions of numerical variables
-numerical_vars <- select_if(data_combined, is.numeric)
-for (var in names(numerical_vars)) {
-  print(ggplot(data_combined, aes_string(x = var)) + 
-          geom_histogram(bins = 30, fill = "skyblue") + 
-          labs(title = paste("Distribution of", var)))
-}
-```
-
-```{r}
-# Exploratory analysis of categorical variables
-categorical_vars <- select_if(data_combined, is.factor)
+# Exploratory Data Analysis (EDA) - Focus on categorical variables
+categorical_vars <- select(data_combined, SPUBCHOIX, SCONSIDR, SEGRADES, FSSPORTX, FSMTNG, FSPTMTNG, FSATCNFN, FHHOME, FHCAMT, FHPLACE)
 for (var in names(categorical_vars)) {
-  print(ggplot(data_combined, aes_string(x = var, fill = var)) + 
+  print(ggplot(data_combined, aes(x = .data[[var]], fill = .data[[var]])) + 
           geom_bar() + 
           theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
           labs(title = paste("Distribution of", var)))
@@ -81,46 +59,40 @@ for (var in names(categorical_vars)) {
 
 ```{r}
 # Correlation analysis for numerical variables
-# Before performing correlation analysis, ensure there are no columns with only NA values
-# and that there is at least one pair of complete observations
-
-# Select numeric variables and remove any columns that are completely NA
+# Filter numeric variables and remove any columns that are completely NA
 clean_numeric_data <- select_if(data_combined, is.numeric) %>%
   select_if(~!all(is.na(.)))
 ```
 
-```{r}
-# Perform correlation analysis on cleaned numeric data
-correlation_analysis <- cor(clean_numeric_data, use = "pairwise.complete.obs")
-```
 
 ```{r}
+# Perform correlation analysis
+correlation_analysis <- cor(clean_numeric_data, use = "pairwise.complete.obs")
+
 # Print the correlation matrix
 print(correlation_analysis)
-
 ```
 
 ```{r}
 # Splitting the dataset into training and testing sets
-set.seed(123) # For reproducibility
+set.seed(123)
 data_split <- initial_split(data_combined, prop = 0.8)
 train_data <- training(data_split)
 test_data <- testing(data_split)
-
 ```
 
 ```{r}
-# Defining the model using GLM for logistic regression
+# Defining the logistic regression model
 glm_model <- logistic_reg() %>% 
-  set_engine("glm") %>% 
+  set_engine("glm") %>%
   set_mode("classification")
+
+# Defining the recipe 
+recipe <- recipe(SCCHOICE ~ SPUBCHOIX + SCONSIDR + SEGRADES + FSSPORTX + FSMTNG + FSPTMTNG + FSATCNFN + FHHOME + FHCAMT + FHPLACE, data = train_data) %>%
+  step_dummy(all_nominal_predictors(), -all_outcomes())
+
 ```
 
-```{r}
-# Defining the recipe (including factors of interest for research questions)
-recipe <- recipe(SCCHOICE ~ SPUBCHOIX + SCONSIDR + SEGRADES + FSSPORTX + FSMTNG + FSPTMTNG + FSATCNFN + FHHOME + FHCAMT + FHPLACE, data = train_data) %>%
-  step_dummy(all_nominal(), -all_outcomes())
-```
 
 ```{r}
 # Fitting the model
@@ -129,14 +101,6 @@ glm_fit <- workflow() %>%
   add_recipe(recipe) %>%
   fit(data = train_data)
 ```
-
-
-
-
-
-
-
-
 
 
 
